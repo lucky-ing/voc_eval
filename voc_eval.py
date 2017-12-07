@@ -247,9 +247,9 @@ if __name__ =='__main__':
         testfilepath=os.getcwd()+'/123_testname.txt'
         temp = re.findall(name_xml, lines[0])
         annopath=temp[0]+'{}.xml'
-        ap,vp,map=voc_eval(detpath,annopath,testfilepath,testname)
+        rec,prec,map=voc_eval(detpath,annopath,testfilepath,testname)
         print(map)
         plt.figure()
-        plt.plot(ap,vp)
+        plt.plot(rec,prec)
         plt.savefig('123.jpg')
 
