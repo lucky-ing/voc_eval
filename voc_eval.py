@@ -151,7 +151,7 @@ def voc_eval(detpath,
     with open(detfile, 'r') as f:
         lines = f.readlines()
 
-    splitlines = [x.strip().split(':') for x in lines]
+    splitlines = [x.strip().split(' ') for x in lines]
     image_ids = [x[0] for x in splitlines]
     confidence = np.array([float(x[1]) for x in splitlines])
     BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
