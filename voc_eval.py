@@ -71,7 +71,7 @@ def voc_ap(rec, prec, use_07_metric=False):
         # to calculate area under PR curve, look for points
         # where X axis (recall) changes value
         i = np.where(mrec[1:] != mrec[:-1])[0]
-        print(i)
+        #print(i)
         # and sum (\Delta recall) * prec
         ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
     return ap
@@ -112,9 +112,9 @@ def voc_eval(detpath,
     #    os.mkdir(cachedir)
     #cachefile = os.path.join(cachedir, 'annots.pkl')
     # read list of images
-    with open(imagesetfile, 'r') as f:
-        lines = f.readlines()
-    imagenames = [x.strip() for x in lines]
+    #with open(imagesetfile, 'r') as f:
+    #    lines = f.readlines()
+    imagenames = [x.strip() for x in imagesetfile]
 
     #if not os.path.isfile(cachefile):
         # load annots
@@ -151,6 +151,7 @@ def voc_eval(detpath,
     with open(detfile, 'r') as f:
         lines = f.readlines()
 
+    #splitlines = [x.strip().split(':') for x in lines]
     splitlines = [x.strip().split(' ') for x in lines]
     image_ids = [x[0] for x in splitlines]
     confidence = np.array([float(x[1]) for x in splitlines])
@@ -205,20 +206,12 @@ def voc_eval(detpath,
             fp[d] = 1.
 
     # compute precision recall
-    #print('FP', fp)
-    #print('TP', tp)
+
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
     rec = tp / float(npos)
-    #print('FP_', fp)
-    #print('TP_', tp)
-    # avoid divide by zero in case the first detection matches a difficult
-    # ground truth
-
 
     prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
-    #print('REC', rec)
-    #print('PREC', prec)
     ap = voc_ap(rec, prec, use_07_metric)
 
     return rec, prec, ap
@@ -234,20 +227,15 @@ if __name__ =='__main__':
         testname=sys.argv[3]
         name_id=re.compile('.*/(.*)\.[jpg|jpeg|JPEG|JPG]')
         name_xml = re.compile('(.*/).*.[jpg|jpeg|JPEG|JPG]')
-        #name_id=re.compile('.*/(.*)\.JPG')
-        #name_xml = re.compile('(.*/).*.JPG')
-        #print(re.findall(name_id,'456/123.jpg'))
+        testfilelist=[]
         with open(testfile, 'r') as f:
             lines = f.readlines()
-        f=open('123_testname.txt','w')
         for i in lines:
             temp=re.findall(name_id,i)
-            f.write(temp[0]+'\n')
-        f.close()
-        testfilepath=os.getcwd()+'/123_testname.txt'
+            testfilelist.append(temp[0])
         temp = re.findall(name_xml, lines[0])
         annopath=temp[0]+'{}.xml'
-        rec,prec,map=voc_eval(detpath,annopath,testfilepath,testname)
+        rec,prec,map=voc_eval(detpath,annopath,testfilelist,testname)
         print(map)
         plt.figure()
         plt.plot(rec,prec)
