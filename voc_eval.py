@@ -11,6 +11,7 @@ import cPickle
 import numpy as np
 import sys
 import re
+import matplotlib.pyplot as plt
 def parse_rec(filename):
     """ Parse a PASCAL VOC xml file """
     tree = ET.parse(filename)
@@ -29,6 +30,18 @@ def parse_rec(filename):
         objects.append(obj_struct)
 
     return objects
+
+def parse_rec_(filename):
+    """ Parse a PASCAL VOC txt file """
+    with open (filename) as f:
+        lines=f.readlines()
+    for line in lines:
+        line.strip()
+        obj_struct = {}
+        obj_struct ['name']=line.split(':')[0]
+        obj_struct['pose'] = 'Unspecified'
+        obj_struct['truncated'] = int(0)
+        obj_struct['difficult'] = int(0)
 
 def voc_ap(rec, prec, use_07_metric=False):
     """ ap = voc_ap(rec, prec, [use_07_metric])
@@ -58,7 +71,7 @@ def voc_ap(rec, prec, use_07_metric=False):
         # to calculate area under PR curve, look for points
         # where X axis (recall) changes value
         i = np.where(mrec[1:] != mrec[:-1])[0]
-
+        print(i)
         # and sum (\Delta recall) * prec
         ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
     return ap
@@ -67,7 +80,7 @@ def voc_eval(detpath,
              annopath,
              imagesetfile,
              classname,
-             ovthresh=0.5,
+             ovthresh=0.8,
              use_07_metric=False):
     """rec, prec, ap = voc_eval(detpath,
                                 annopath,
@@ -138,7 +151,7 @@ def voc_eval(detpath,
     with open(detfile, 'r') as f:
         lines = f.readlines()
 
-    splitlines = [x.strip().split(' ') for x in lines]
+    splitlines = [x.strip().split(':') for x in lines]
     image_ids = [x[0] for x in splitlines]
     confidence = np.array([float(x[1]) for x in splitlines])
     BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
@@ -147,13 +160,15 @@ def voc_eval(detpath,
     sorted_ind = np.argsort(-confidence)
     sorted_scores = np.sort(-confidence)
     BB = BB[sorted_ind, :]
-    image_ids = [image_ids[x] for x in sorted_ind]
+    image_ids = [image_ids[x] for x in sorted_ind]#jiancedaode suoyoude wuti
 
     # go down dets and mark TPs and FPs
     nd = len(image_ids)
     tp = np.zeros(nd)
     fp = np.zeros(nd)
     for d in range(nd):
+        #if image_ids[d] not in class_recs.keys():
+        #    continue
         R = class_recs[image_ids[d]]
         bb = BB[d, :].astype(float)
         ovmax = -np.inf
@@ -190,17 +205,25 @@ def voc_eval(detpath,
             fp[d] = 1.
 
     # compute precision recall
+    #print('FP', fp)
+    #print('TP', tp)
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
     rec = tp / float(npos)
+    #print('FP_', fp)
+    #print('TP_', tp)
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
+
+
     prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+    #print('REC', rec)
+    #print('PREC', prec)
     ap = voc_ap(rec, prec, use_07_metric)
 
     return rec, prec, ap
 
-
+#
 if __name__ =='__main__':
     if len(sys.argv)<4:
         print 'error!!!'
@@ -209,8 +232,8 @@ if __name__ =='__main__':
         detpath=sys.argv[1]
         testfile=sys.argv[2]
         testname=sys.argv[3]
-        name_id=re.compile('.*/(.*)\.(jpg|jpeg|JPEG|JPG)')
-        name_xml = re.compile('(.*/).*.(jpg|jpeg|JPEG|JPG)')
+        name_id=re.compile('.*/(.*)\.[jpg|jpeg|JPEG|JPG]')
+        name_xml = re.compile('(.*/).*.[jpg|jpeg|JPEG|JPG]')
         #name_id=re.compile('.*/(.*)\.JPG')
         #name_xml = re.compile('(.*/).*.JPG')
         #print(re.findall(name_id,'456/123.jpg'))
@@ -224,5 +247,9 @@ if __name__ =='__main__':
         testfilepath=os.getcwd()+'/123_testname.txt'
         temp = re.findall(name_xml, lines[0])
         annopath=temp[0]+'{}.xml'
-        print voc_eval(detpath,annopath,testfilepath,testname)[2]
+        ap,vp,map=voc_eval(detpath,annopath,testfilepath,testname)
+        print(map)
+        plt.figure()
+        plt.plot(ap,vp)
+        plt.savefig('123.jpg')
 
